@@ -17,9 +17,6 @@ dots = [(random.uniform(0, max_coord), random.uniform(0, max_coord)) for i in ra
 
 # Define the ellipse
 def ellipse(x, y, a, b, theta):
-    # Check if the point is within the plot frame
-    if (x < 0).any() or (x >= width).any() or (y < 0).any() or (y >= height).any():
-        return 1e6
     x1 = x * math.cos(theta) + y * math.sin(theta)
     y1 = -x * math.sin(theta) + y * math.cos(theta)
     return x1**2 / a**2 + y1**2 / b**2
@@ -84,14 +81,11 @@ print("Iteration", i, "Best solution:", best_bee, "Fitness:", best_fitness)
 
 # Plot the best ellipse and the dots
 a, b, theta = best_bee
-x = np.linspace(0, 64, 100)
-y = np.linspace(0, 64, 100)
+x = np.linspace(0, max_coord, 100)
+y = np.linspace(0, max_coord, 100)
 X, Y = np.meshgrid(x, y)
 Z = ellipse(X, Y, a, b, theta)
-fig, ax = plt.subplots(figsize=(4, 4))
-ax.set_xlim(0, 64)
-ax.set_ylim(0, 64)
+fig, ax = plt.subplots()
 ax.contour(X, Y, Z, levels=[1])
 ax.scatter([dot[0] for dot in dots], [dot[1] for dot in dots], s=5)
 plt.show()
-
