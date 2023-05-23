@@ -19,19 +19,21 @@ def read_points_from_file(file_path):
                     points.append((x, y))
     return np.array(points), width, height
 
-def fit_ellipse_to_points(points, width, height):
-    # Define the ellipse equation
-    def ellipse_equation(params, x, y):
-        a, b, x0, y0, angle = params
-        ct = np.cos(angle)
-        st = np.sin(angle)
-        x_rot = (x - x0) * ct + (y - y0) * st
-        y_rot = (y - x0) * st + (y - y0) * ct
-        return (x_rot / a) ** 2 + (y_rot / b) ** 2 - 1
+def ellipse(x, y, cx, cy, a, b, theta):
+    t = np.linspace(0, 2 * np.pi, 100)
+    ct = np.cos(theta)
+    st = np.sin(theta)
+    x_rot = (x - cx) * ct + (y - cy) * st
+    y_rot = -(x - cx) * st + (y - cy) * ct
+    return (x_rot / a) ** 2 + (y_rot / b) ** 2 - 1
 
+
+def fit_ellipse_to_points(points, width, height, max_ls_iterations):
     # Define the objective function for least squares
-    def objective_function(params, x, y):
-        return np.sum(ellipse_equation(params, x, y) ** 2)
+    def objective_function(params, points):
+        a, b, x0, y0, angle = params
+        errors = ellipse(points[:, 0], points[:, 1], x0, y0, a, b, angle)
+        return np.sum(errors ** 2)
 
     # Improved initial guess for ellipse parameters
     mean_x, mean_y = points.mean(axis=0)
@@ -66,21 +68,32 @@ def fit_ellipse_to_points(points, width, height):
     )
 
     # Perform least squares fitting
-    result = minimize(objective_function, init_params, args=(points[:, 0], points[:, 1]), constraints=constraints)
+    result = minimize(objective_function, init_params, args=(points,), constraints=constraints,
+                      options={'maxiter': max_ls_iterations})
 
     # Extract the best fitness found
     best_fitness = result.fun
 
-    return best_fitness
+    return result.x, best_fitness
 
-def process_files(input_dir, output_file, num_runs):
+
+def plot_ellipse(ax, params):
+    a, b, x0, y0, angle = params
+    t = np.linspace(0, 2 * np.pi, 100)
+    ct = np.cos(angle)
+    st = np.sin(angle)
+    x = x0 + a * np.cos(t) * ct - b * np.sin(t) * st
+    y = y0 + a * np.cos(t) * st + b * np.sin(t) * ct
+    ax.plot(x, y, color='red')
+
+
+def process_files(input_dir, output_file, max_ls_iterations):
     input_files = os.listdir(input_dir)
     input_files = [file for file in input_files if file.endswith('.txt')]
     input_files = sorted(input_files)[:100]  # Process the first 100 files
 
     elapsed_times = []
     best_fitnesses = []
-
     results = []
 
     for file_name in input_files:
@@ -88,39 +101,39 @@ def process_files(input_dir, output_file, num_runs):
         print(f"Processing {file_name}")
         points, width, height = read_points_from_file(file_path)
 
-        file_elapsed_times = []
-        file_best_fitnesses = []
+        start_time = time.time()
+        params, best_fitness = fit_ellipse_to_points(points, width, height, max_ls_iterations)
+        elapsed_time = time.time() - start_time
 
-        for run in range(num_runs):
-            start_time = time.time()
-            best_fitness = fit_ellipse_to_points(points, width, height)
-            elapsed_time = time.time() - start_time
-            file_elapsed_times.append(elapsed_time)
-            file_best_fitnesses.append(best_fitness)
-
-        avg_elapsed_time = sum(file_elapsed_times) / num_runs
-        avg_best_fitness = sum(file_best_fitnesses) / num_runs
-
-        elapsed_times.extend(file_elapsed_times)
-        best_fitnesses.extend(file_best_fitnesses)
+        elapsed_times.append(elapsed_time)
+        best_fitnesses.append(best_fitness)
 
         results.append({
             'File': file_name,
-            'Time': avg_elapsed_time,
-            'Fitness': avg_best_fitness
+            'Time': elapsed_time,
+            'Fitness': best_fitness
         })
+
+        # Plot the best ellipse found
+        fig, ax = plt.subplots()
+        ax.scatter(points[:, 0], points[:, 1], color='blue', s=3)
+        plot_ellipse(ax, params)
+        ax.set_aspect('equal')
+        #plt.title(f"Best Ellipse - {file_name}")
+        plt.savefig(f"best_ellipse_{file_name}.png")
+        plt.show()
 
     df = pd.DataFrame(results)
     df.to_csv(output_file, index=False)
 
-    # Calculate average fitness and time
     avg_fitness = sum(best_fitnesses) / len(best_fitnesses)
     avg_time = sum(elapsed_times) / len(elapsed_times)
     print("Average Fitness:", avg_fitness)
     print("Average Time Spent:", avg_time)
 
-input_dir = r'C:/Users/zilin/Desktop/Bakalauras/data/1010'
-output_file = r'C:/Users/zilin/Desktop/Bakalauras/data/results/linear1010.txt'
-num_runs = 1
 
-process_files(input_dir, output_file, num_runs)
+input_dir = r'\data\results\test-control'
+output_file = r'\data\results\sqr-test.txt'
+max_ls_iterations = 5000
+
+process_files(input_dir, output_file, max_ls_iterations)

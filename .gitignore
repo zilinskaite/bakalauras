@@ -30,6 +30,7 @@ creds.js
 *.xlsx
 *.jpg
 *.png
+*.txt
 
 # Distribution / packaging
 .Python

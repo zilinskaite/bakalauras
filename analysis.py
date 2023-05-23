@@ -69,11 +69,11 @@ def analyze_results(output_file1, output_file2):
     return results
 
 # Provide the paths of the output files
-output_file1 = r'C:\Users\zilin\Desktop\Bakalauras\data\results\abc210-510.txt'
-output_file2 = r'C:\Users\zilin\Desktop\Bakalauras\data\results\linear210-510.txt'
+output_file1 = r'\data\results\prob\abc610-910.txt'
+output_file2 = r'\data\results\prob\sqr610-910.txt'
 
 results = analyze_results(output_file1, output_file2)
 
 # Save the results to a file
-output_file3 = r'C:\Users\zilin\Desktop\Bakalauras\data\results\analysis\210-510.txt'
+output_file3 = r'\data\results\analysis\610-910.txt'
 save_results_to_file(results, output_file3)
